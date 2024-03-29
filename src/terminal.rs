@@ -5,7 +5,9 @@ pub struct Terminal(pub ratatui::Terminal<ratatui::backend::CrosstermBackend<std
 impl std::ops::Drop for Terminal {
     fn drop(&mut self) {
         crossterm::terminal::disable_raw_mode().expect("leave terminal raw mode");
-        std::io::stdout().execute(crossterm::terminal::LeaveAlternateScreen).expect("leave terminal alternate screen");
+        std::io::stdout()
+            .execute(crossterm::terminal::LeaveAlternateScreen)
+            .expect("leave terminal alternate screen");
     }
 }
 
@@ -18,5 +20,12 @@ impl Terminal {
 
         let backend = ratatui::backend::CrosstermBackend::new(std::io::stdout());
         Ok(Self(ratatui::Terminal::new(backend)?))
+    }
+
+    pub fn draw<F>(&mut self, f: F) -> std::io::Result<ratatui::CompletedFrame<'_>>
+    where
+        F: FnOnce(&mut ratatui::Frame<'_>),
+    {
+        self.0.draw(f)
     }
 }
