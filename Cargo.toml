@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+bevy = { version = "0.13.1", default-features = false }
 bevy_ecs = "0.13.1"
 crossterm = "0.27.0"
 ratatui = "0.26.1"
