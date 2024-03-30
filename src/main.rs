@@ -1,14 +1,17 @@
 use bevy::prelude::*;
 
 mod event;
+mod player;
+mod sprite;
 mod terminal;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     bevy::app::App::new()
         .add_event::<event::TerminalEvent>()
         .add_plugins(bevy::MinimalPlugins.set(runloop()))
+        .add_systems(Startup, spawn_player)
         .add_systems(Update, (handle_terminal_events, handle_exit))
-        .add_systems(PostUpdate, render_frame)
+        .add_systems(PostUpdate, render)
         .insert_resource(terminal::Terminal::new()?)
         .run();
 
@@ -64,14 +67,28 @@ fn handle_exit(
     }
 }
 
-fn render_frame(mut terminal: ResMut<terminal::Terminal>) {
+fn render(mut terminal: ResMut<terminal::Terminal>, query: Query<&sprite::Sprite>) {
     terminal
         .draw(|frame| {
             use ratatui::widgets::{Block, Borders};
-            frame.render_widget(
-                Block::default().borders(Borders::ALL),
-                frame.size(),
-            );
+
+            let border = Block::default().borders(Borders::ALL);
+            frame.render_widget(border.clone(), frame.size());
+
+            for sprite in &query {
+                frame.render_widget(sprite.clone(), border.inner(frame.size()));
+            }
         })
         .expect("frame rendered sucessfully");
+}
+
+fn spawn_player(mut commands: Commands) {
+    commands.spawn((
+        player::Player,
+        sprite::Sprite::builder()
+            .buffer("xxxx".to_string())
+            .size(IVec2::new(2, 2))
+            .build()
+            .unwrap(),
+    ));
 }
