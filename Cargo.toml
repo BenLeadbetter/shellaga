@@ -9,8 +9,6 @@ edition = "2021"
 bevy = { version = "0.13.1", default-features = false }
 bevy_ecs = "0.13.1"
 crossterm = "0.27.0"
-derive-getters = "0.3.0"
-derive_builder = "0.20.0"
 itertools = "0.12.1"
 log = "0.4.21"
 oslog = "0.2.0"

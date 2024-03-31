@@ -1,8 +1,21 @@
 use crossterm::ExecutableCommand;
 
-pub struct Terminal(pub ratatui::Terminal<ratatui::backend::CrosstermBackend<std::io::Stdout>>);
+#[derive(bevy::ecs::event::Event, Debug)]
+pub enum TerminalEvent {
+    Key(crossterm::event::KeyEvent),
+    Resize(u16, u16),
+}
 
-impl std::ops::Drop for Terminal {
+pub fn plugin(app: &mut bevy::app::App) {
+    app.add_event::<TerminalEvent>();
+    app.insert_resource(Terminal::new().expect("error initialising terminal"));
+    app.add_systems(bevy::app::PreUpdate, handle_events);
+}
+
+#[derive(bevy::ecs::system::Resource)]
+pub struct Terminal(ratatui::Terminal<ratatui::backend::CrosstermBackend<std::io::Stdout>>);
+
+impl Drop for Terminal {
     fn drop(&mut self) {
         crossterm::execute!(
             std::io::stdout(),
@@ -15,8 +28,6 @@ impl std::ops::Drop for Terminal {
         crossterm::terminal::disable_raw_mode().expect("leave terminal raw mode");
     }
 }
-
-impl bevy::ecs::system::Resource for Terminal {}
 
 impl Terminal {
     pub fn new() -> Result<Self, std::boxed::Box<dyn std::error::Error>> {
@@ -31,7 +42,6 @@ impl Terminal {
                     | crossterm::event::KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES
             )
         )?;
-
         let backend = ratatui::backend::CrosstermBackend::new(std::io::stdout());
         Ok(Self(ratatui::Terminal::new(backend)?))
     }
@@ -41,5 +51,30 @@ impl Terminal {
         F: FnOnce(&mut ratatui::Frame<'_>),
     {
         self.0.draw(f)
+    }
+}
+
+fn handle_events(mut event_sender: bevy::ecs::event::EventWriter<TerminalEvent>) {
+    while let Ok(true) = crossterm::event::poll(std::time::Duration::from_millis(0)) {
+        match crossterm::event::read() {
+            Ok(e) => {
+                log::trace!("crossterm event {:?}", e);
+                match e {
+                    // forward crossterm events into bevy
+                    crossterm::event::Event::Key(key_event) => {
+                        event_sender.send(TerminalEvent::Key(key_event));
+                    }
+                    crossterm::event::Event::Resize(w, h) => {
+                        event_sender.send(TerminalEvent::Resize(w, h));
+                    }
+                    // ignore these for now
+                    crossterm::event::Event::FocusGained => {}
+                    crossterm::event::Event::FocusLost => {}
+                    crossterm::event::Event::Mouse(_) => {}
+                    crossterm::event::Event::Paste(_) => {}
+                }
+            }
+            _ => {}
+        };
     }
 }
