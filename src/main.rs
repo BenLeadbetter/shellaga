@@ -9,10 +9,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     bevy::app::App::new()
         .add_event::<event::TerminalEvent>()
         .add_plugins(bevy::MinimalPlugins.set(runloop()))
-        .add_systems(Startup, spawn_player)
-        .add_systems(Update, (handle_terminal_events, handle_exit))
-        .add_systems(PostUpdate, render)
+        .add_plugins(bevy::transform::TransformPlugin)
         .insert_resource(terminal::Terminal::new()?)
+        .insert_resource(player::PlayerEntity::default())
+        .add_systems(Startup, player::Player::spawn)
+        .add_systems(
+            Update,
+            (handle_terminal_events, player::Player::update, handle_exit).chain(),
+        )
+        .add_systems(PostUpdate, render)
         .run();
 
     Ok(())
@@ -67,7 +72,10 @@ fn handle_exit(
     }
 }
 
-fn render(mut terminal: ResMut<terminal::Terminal>, query: Query<&sprite::Sprite>) {
+fn render(
+    mut terminal: ResMut<terminal::Terminal>,
+    query: Query<(&sprite::Sprite, &GlobalTransform)>,
+) {
     terminal
         .draw(|frame| {
             use ratatui::widgets::{Block, Borders};
@@ -75,20 +83,13 @@ fn render(mut terminal: ResMut<terminal::Terminal>, query: Query<&sprite::Sprite
             let border = Block::default().borders(Borders::ALL);
             frame.render_widget(border.clone(), frame.size());
 
-            for sprite in &query {
-                frame.render_widget(sprite.clone(), border.inner(frame.size()));
+            for (sprite, transform) in &query {
+                let translation = transform.translation().xy();
+                let mut area = frame.size();
+                area.x += translation.x as u16;
+                area.y += translation.y as u16;
+                frame.render_widget(sprite.clone(), border.inner(area));
             }
         })
         .expect("frame rendered sucessfully");
-}
-
-fn spawn_player(mut commands: Commands) {
-    commands.spawn((
-        player::Player,
-        sprite::Sprite::builder()
-            .buffer("xxxx".to_string())
-            .size(IVec2::new(2, 2))
-            .build()
-            .unwrap(),
-    ));
 }
