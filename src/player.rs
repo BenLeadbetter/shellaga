@@ -14,6 +14,20 @@ pub struct PlayerMovingState {
 #[derive(bevy::ecs::component::Component)]
 pub struct PlayerSpeed(f32);
 
+trait ToFloat {
+    fn to_float(&self) -> f32;
+}
+
+impl ToFloat for bool {
+    fn to_float(&self) -> f32 {
+        if *self {
+            1.0
+        } else {
+            0.0
+        }
+    }
+}
+
 impl Player {
     pub fn spawn(
         mut commands: bevy::ecs::system::Commands,
@@ -101,12 +115,14 @@ impl Player {
             }
         }
 
-        transform.translation += bevy::math::f32::Vec3::new(
-            if moving_state.left { -speed.0 } else { 0.0 }
-                + if moving_state.right { speed.0 } else { 0.0 },
-            if moving_state.down { -speed.0 } else { 0.0 }
-                + if moving_state.up { speed.0 } else { 0.0 },
+        if let Some(v) = bevy::math::f32::Vec3::new(
+            moving_state.right.to_float() - moving_state.left.to_float(),
+            moving_state.down.to_float() - moving_state.up.to_float(),
             0.0,
-        );
+        )
+        .try_normalize()
+        {
+            transform.translation += speed.0 * v
+        }
     }
 }
