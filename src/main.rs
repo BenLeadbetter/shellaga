@@ -1,11 +1,15 @@
 use bevy::prelude::*;
 
 mod event;
+mod logging;
 mod player;
 mod sprite;
 mod terminal;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+
+    logging::init()?;
+
     bevy::app::App::new()
         .add_event::<event::TerminalEvent>()
         .add_plugins(bevy::MinimalPlugins.set(runloop()))
@@ -31,6 +35,7 @@ fn handle_terminal_events(mut event_sender: EventWriter<event::TerminalEvent>) {
     while let Ok(true) = crossterm::event::poll(std::time::Duration::from_millis(0)) {
         match crossterm::event::read() {
             Ok(e) => {
+                log::info!("crossterm event {:?}", e);
                 match e {
                     // forward crossterm events into bevy
                     crossterm::event::Event::Key(key_event) => {
