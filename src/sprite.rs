@@ -18,8 +18,8 @@ impl ratatui::widgets::Widget for Sprite {
         use itertools::Itertools;
         for (row, col) in (0..self.size.x).cartesian_product(0..self.size.y) {
             if let Some(c) = self.buffer.chars().nth((row * self.size.x + col) as usize) {
-                let x = row as u16 + area.x;
-                let y = col as u16 + area.y;
+                let x = col as u16 + area.x;
+                let y = row as u16 + area.y;
                 if buf.area().contains(ratatui::layout::Position{x, y}) {
                     buf.get_mut(x, y).set_char(c);
                 }

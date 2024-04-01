@@ -54,8 +54,8 @@ fn spawn(
         .spawn((
             Player,
             crate::sprite::Sprite {
-                buffer: "xxxx".to_string(),
-                size: bevy::math::i32::IVec2::new(2, 2),
+                buffer: "]o>".to_string(),
+                size: bevy::math::i32::IVec2::new(1, 3),
             },
             bevy::transform::TransformBundle::from_transform(
                 bevy::transform::components::Transform::from_translation(
