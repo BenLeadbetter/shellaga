@@ -10,6 +10,7 @@ pub fn plugin(app: &mut bevy::app::App) {
     app.add_event::<TerminalEvent>();
     app.insert_resource(Terminal::new().expect("error initialising terminal"));
     app.add_systems(bevy::app::PreUpdate, handle_events);
+    app.add_systems(bevy::app::Last, render);
 }
 
 #[derive(bevy::ecs::system::Resource)]
@@ -45,12 +46,46 @@ impl Terminal {
         let backend = ratatui::backend::CrosstermBackend::new(std::io::stdout());
         Ok(Self(ratatui::Terminal::new(backend)?))
     }
+}
 
-    pub fn draw<F>(&mut self, f: F) -> std::io::Result<ratatui::CompletedFrame<'_>>
+struct LevelWidget<'a>(&'a crate::buffer::Buffer);
+
+impl<'a> ratatui::widgets::Widget for LevelWidget<'a> {
+    fn render(self, area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer)
     where
-        F: FnOnce(&mut ratatui::Frame<'_>),
+        Self: Sized,
     {
-        self.0.draw(f)
+        let shape = self.0 .0.shape();
+        use itertools::Itertools;
+        for (row, col) in (0..shape[0]).cartesian_product(0..shape[1]) {
+            let cell = self.0 .0[[row, col]];
+            if col >= area.width.into() || row >= area.height.into() {
+                continue;
+            }
+            buf.content[area.width as usize * row + col] = {
+                let mut rat_cell = ratatui::buffer::Cell::default();
+                if let Some(c) = cell.character {
+                    rat_cell.set_char(c);
+                }
+                rat_cell
+            }
+        }
+    }
+}
+
+fn fallible_render(terminal: &mut Terminal, buffer: &crate::buffer::Buffer) -> std::io::Result<()> {
+    terminal
+        .0
+        .draw(|frame| frame.render_widget(LevelWidget(&*buffer), frame.size()))?;
+    Ok(())
+}
+
+fn render(
+    mut terminal: bevy::ecs::system::ResMut<Terminal>,
+    buffer: bevy::ecs::system::Res<crate::buffer::Buffer>,
+) {
+    if let Err(_) = fallible_render(&mut *terminal, &*buffer) {
+        log::error!("Failed to render frame");
     }
 }
 

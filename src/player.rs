@@ -54,8 +54,20 @@ fn spawn(
         .spawn((
             Player,
             crate::sprite::Sprite {
-                buffer: "]o>".to_string(),
-                size: bevy::math::i32::IVec2::new(1, 3),
+                buffer: crate::buffer::Buffer(ndarray::array![[
+                    crate::buffer::Cell {
+                        character: Some(']'),
+                        ..Default::default()
+                    },
+                    crate::buffer::Cell {
+                        character: Some('o'),
+                        ..Default::default()
+                    },
+                    crate::buffer::Cell {
+                        character: Some('>'),
+                        ..Default::default()
+                    },
+                ]]),
             },
             bevy::transform::TransformBundle::from_transform(
                 bevy::transform::components::Transform::from_translation(

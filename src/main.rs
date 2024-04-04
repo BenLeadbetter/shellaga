@@ -1,6 +1,7 @@
 use bevy::app::PluginGroup;
 
 mod app;
+mod buffer;
 mod level;
 mod logging;
 mod player;
@@ -15,6 +16,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_plugins(bevy::transform::TransformPlugin)
         .add_plugins(terminal::plugin)
         .add_plugins(app::plugin)
+        .add_plugins(buffer::plugin)
         .add_plugins(sprite::plugin)
         .add_plugins(level::plugin)
         .add_plugins(player::plugin)
