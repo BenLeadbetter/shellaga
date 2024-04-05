@@ -8,27 +8,30 @@ pub enum LevelEvent {
 }
 
 pub fn plugin(app: &mut bevy::app::App) {
+    use bevy::ecs::schedule::IntoSystemConfigs;
+
     app.add_event::<LevelEvent>();
-    app.add_systems(bevy::app::Update, spawn);
+    app.add_systems(
+        bevy::app::Update,
+        spawn.run_if(level_not_spawned).run_if(on_level_start_event),
+    );
+}
+
+fn level_not_spawned(query: bevy::ecs::system::Query<(), bevy::ecs::query::With<Level>>) -> bool {
+    query.is_empty()
+}
+
+fn on_level_start_event(mut events: bevy::ecs::event::EventReader<LevelEvent>) -> bool {
+    events.read().any(|e| *e == LevelEvent::LevelStart)
 }
 
 fn spawn(
-    mut events: bevy::ecs::system::ResMut<bevy::ecs::event::Events<LevelEvent>>,
-    query: bevy::ecs::system::Query<&Level>,
     mut commands: bevy::ecs::system::Commands,
+    mut events: bevy::ecs::event::EventWriter<LevelEvent>,
 ) {
-    let level_started = events
-        .get_reader()
-        .read(&events)
-        .any(|e| *e == LevelEvent::LevelStart);
-    // we send one start event but this system handles 
-    // it three times. why??
-    let level_spawned = !query.is_empty(); 
-    if level_started && !level_spawned {
-        log::info!("spawning level");
-        let id = commands
-            .spawn((bevy::transform::TransformBundle::default(), Level))
-            .id();
-        events.send(LevelEvent::RootSpawned(id));
-    }
+    log::info!("spawning level");
+    let id = commands
+        .spawn((bevy::transform::TransformBundle::default(), Level))
+        .id();
+    events.send(LevelEvent::RootSpawned(id));
 }
