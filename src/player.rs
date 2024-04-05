@@ -2,8 +2,10 @@
 pub struct Player;
 
 pub fn plugin(app: &mut bevy::app::App) {
-    app.add_systems(bevy::app::Update, spawn);
-    app.add_systems(bevy::app::Update, update);
+    use bevy::ecs::schedule::{IntoSystemConfigs, common_conditions::{not, any_with_component}};
+
+    app.add_systems(bevy::app::Update, spawn.run_if(not(any_with_component::<Player>)));
+    app.add_systems(bevy::app::Update, update.run_if(any_with_component::<Player>));
 }
 
 #[derive(bevy::ecs::component::Component, Default)]
@@ -92,6 +94,7 @@ fn update(
     >,
 ) {
     let Ok((mut transform, mut moving_state, speed)) = query.get_single_mut() else {
+        log::error!("More that one player spawn at one time");
         return;
     };
 
