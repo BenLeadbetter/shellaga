@@ -1,36 +1,49 @@
 #[derive(bevy::ecs::component::Component)]
-pub struct Player;
-
-pub fn plugin(app: &mut bevy::app::App) {
-    use bevy::ecs::schedule::{IntoSystemConfigs, common_conditions::{not, any_with_component}};
-
-    app.add_systems(bevy::app::Update, spawn.run_if(not(any_with_component::<Player>)));
-    app.add_systems(bevy::app::Update, update.run_if(any_with_component::<Player>));
+pub struct Player {
+    speed: f32,
+    moving_state: u8,
 }
 
-#[derive(bevy::ecs::component::Component, Default)]
-pub struct PlayerMovingState {
-    up: bool,
-    down: bool,
-    left: bool,
-    right: bool,
-}
+const MOVING_LEFT: u8 = 0b0000_0001;
+const MOVING_RIGHT: u8 = 0b0000_0010;
+const MOVING_UP: u8 = 0b0000_0100;
+const MOVING_DOWN: u8 = 0b0000_1000;
 
-#[derive(bevy::ecs::component::Component)]
-pub struct PlayerSpeed(f32);
-
-trait ToFloat {
-    fn to_float(&self) -> f32;
-}
-
-impl ToFloat for bool {
-    fn to_float(&self) -> f32 {
-        if *self {
+fn direction(moving_state: u8) -> bevy::math::f32::Vec3 {
+    let component = |flag: u8| -> f32 {
+        if moving_state & flag > 0 {
             1.0
         } else {
             0.0
         }
+    };
+    match bevy::math::f32::Vec3::new(
+        component(MOVING_RIGHT) - component(MOVING_LEFT),
+        component(MOVING_DOWN) - component(MOVING_UP),
+        0.0,
+    )
+    .try_normalize() {
+        Some(v) => v,
+        None => bevy::math::f32::Vec3::default(),
     }
+}
+
+pub fn plugin(app: &mut bevy::app::App) {
+    use bevy::ecs::schedule::{
+        common_conditions::{any_with_component, not, on_event},
+        IntoSystemConfigs,
+    };
+
+    app.add_systems(
+        bevy::app::Update,
+        spawn
+            .run_if(not(any_with_component::<Player>))
+            .run_if(on_event::<crate::level::LevelEvent>()),
+    );
+    app.add_systems(
+        bevy::app::Update,
+        update.run_if(any_with_component::<Player>),
+    );
 }
 
 fn spawn(
@@ -54,7 +67,10 @@ fn spawn(
     use bevy::hierarchy::BuildChildren;
     commands
         .spawn((
-            Player,
+            Player {
+                speed: 0.5,
+                moving_state: 0,
+            },
             crate::sprite::Sprite {
                 buffer: crate::buffer::Buffer(ndarray::array![[
                     crate::buffer::Cell {
@@ -76,24 +92,19 @@ fn spawn(
                     bevy::math::f32::Vec3::new(0.0, 6.0, 0.0),
                 ),
             ),
-            PlayerMovingState::default(),
-            PlayerSpeed(0.5),
+            crate::collider::Collider {
+                size: bevy::math::f32::Vec2::new(3.0, 1.0),
+                ..Default::default()
+            },
         ))
         .set_parent(*root);
 }
 
 fn update(
     mut reader: bevy::ecs::event::EventReader<crate::terminal::TerminalEvent>,
-    mut query: bevy::ecs::system::Query<
-        (
-            &mut bevy::transform::components::Transform,
-            &mut PlayerMovingState,
-            &PlayerSpeed,
-        ),
-        bevy::ecs::query::With<Player>,
-    >,
+    mut query: bevy::ecs::system::Query<(&mut bevy::transform::components::Transform, &mut Player)>,
 ) {
-    let Ok((mut transform, mut moving_state, speed)) = query.get_single_mut() else {
+    let Ok((mut transform, mut player)) = query.get_single_mut() else {
         log::error!("More that one player spawn at one time");
         return;
     };
@@ -107,37 +118,37 @@ fn update(
         match &key.code {
             Char('w') => match &key.kind {
                 Press => {
-                    moving_state.up = true;
+                    player.moving_state |= MOVING_UP;
                 }
                 Release => {
-                    moving_state.up = false;
+                    player.moving_state &= !MOVING_UP;
                 }
                 _ => {}
             },
             Char('a') => match &key.kind {
                 Press => {
-                    moving_state.left = true;
+                    player.moving_state |= MOVING_LEFT;
                 }
                 Release => {
-                    moving_state.left = false;
+                    player.moving_state &= !MOVING_LEFT;
                 }
                 _ => {}
             },
             Char('s') => match &key.kind {
                 Press => {
-                    moving_state.down = true;
+                    player.moving_state |= MOVING_DOWN;
                 }
                 Release => {
-                    moving_state.down = false;
+                    player.moving_state &= !MOVING_DOWN;
                 }
                 _ => {}
             },
             Char('d') => match &key.kind {
                 Press => {
-                    moving_state.right = true;
+                    player.moving_state |= MOVING_RIGHT;
                 }
                 Release => {
-                    moving_state.right = false;
+                    player.moving_state &= !MOVING_RIGHT;
                 }
                 _ => {}
             },
@@ -145,13 +156,5 @@ fn update(
         }
     }
 
-    if let Some(v) = bevy::math::f32::Vec3::new(
-        moving_state.right.to_float() - moving_state.left.to_float(),
-        moving_state.down.to_float() - moving_state.up.to_float(),
-        0.0,
-    )
-    .try_normalize()
-    {
-        transform.translation += speed.0 * v
-    }
+    transform.translation += player.speed * direction(player.moving_state);
 }

@@ -2,6 +2,8 @@ use bevy::app::PluginGroup;
 
 mod app;
 mod buffer;
+mod collider;
+mod frame;
 mod level;
 mod logging;
 mod player;
@@ -19,6 +21,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_plugins(buffer::plugin)
         .add_plugins(sprite::plugin)
         .add_plugins(level::plugin)
+        .add_plugins(frame::plugin)
         .add_plugins(player::plugin)
         .add_systems(bevy::app::Startup, startup)
         .run();
