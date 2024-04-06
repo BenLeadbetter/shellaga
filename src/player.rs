@@ -31,7 +31,7 @@ fn direction(moving_state: u8) -> bevy::math::f32::Vec3 {
 
 pub fn plugin(app: &mut bevy::app::App) {
     use bevy::ecs::schedule::{
-        common_conditions::{any_with_component, not, on_event},
+        common_conditions::{any_with_component, not},
         IntoSystemConfigs,
     };
 
@@ -39,7 +39,7 @@ pub fn plugin(app: &mut bevy::app::App) {
         bevy::app::Update,
         spawn
             .run_if(not(any_with_component::<Player>))
-            .run_if(on_event::<crate::level::LevelEvent>()),
+            .run_if(any_with_component::<crate::frame::Frame>),
     );
     app.add_systems(
         bevy::app::Update,
@@ -49,18 +49,13 @@ pub fn plugin(app: &mut bevy::app::App) {
 
 fn spawn(
     mut commands: bevy::ecs::system::Commands,
-    mut reader: bevy::ecs::event::EventReader<crate::level::LevelEvent>,
+    frame_query: bevy::ecs::system::Query<
+        bevy::ecs::entity::Entity,
+        bevy::ecs::query::With<crate::frame::Frame>,
+    >,
 ) {
-    let Some(root) = reader.read().find_map(|e| {
-        match e {
-            crate::level::LevelEvent::RootSpawned(root) => {
-                Some(root)
-            },
-            _  => {
-                None
-            },
-        }
-    }) else {
+    let Ok(frame) = frame_query.get_single() else {
+        log::error!("Couldn't get a frame instance");
         return;
     };
 
@@ -95,7 +90,7 @@ fn spawn(
             ),
             crate::collider::Collider::new(3.0, 1.0),
         ))
-        .set_parent(*root);
+        .set_parent(frame);
 }
 
 fn update(
@@ -104,11 +99,8 @@ fn update(
         (&mut bevy::transform::components::Transform, &mut Player),
         bevy::ecs::query::Without<crate::frame::Frame>,
     >,
-    mut frame_query: bevy::ecs::system::Query<
-        (
-            &crate::collider::Collider,
-            &bevy::transform::components::Transform,
-        ),
+    frame_query: bevy::ecs::system::Query<
+        &crate::collider::Collider,
         bevy::ecs::query::With<crate::frame::Frame>,
     >,
 ) {
@@ -146,32 +138,17 @@ fn update(
 
     transform.translation += player.speed * direction(player.moving_state);
 
-    let Ok((frame_collider, frame_global_transform)) = frame_query.get_single_mut() else {
-        log::error!("More that one player spawn at one time");
+    let Ok(frame_collider) = frame_query.get_single() else {
+        log::error!("More that one frame spawned at one time");
         return;
     };
 
-    use bevy::math::Vec3Swizzles;
-    let frame_top_left = frame_global_transform
-        .transform_point(bevy::math::f32::Vec3::default())
-        .xy();
-    let frame_bottom_right = frame_global_transform
-        .transform_point(bevy::math::f32::Vec3::new(
-            frame_collider.x,
-            frame_collider.y,
-            0.0,
-        ))
-        .xy();
-
-    // note if the frame and the player have different parents
-    // (i.e. are not in the same coordinate system) then this clamping
-    // will need to be smarter, and account for the inverse transform.
     transform.translation.x = transform
         .translation
         .x
-        .clamp(frame_top_left.x, frame_bottom_right.x);
+        .clamp(0.0, frame_collider.x);
     transform.translation.y = transform
         .translation
         .y
-        .clamp(frame_top_left.y, frame_bottom_right.y);
+        .clamp(0.0, frame_collider.y);
 }

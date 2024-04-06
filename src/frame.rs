@@ -6,7 +6,7 @@ pub struct Frame;
 
 pub fn plugin(app: &mut bevy::app::App) {
     use bevy::ecs::schedule::{
-        common_conditions::{any_with_component, not, on_event},
+        common_conditions::{any_with_component, not},
         IntoSystemConfigs,
     };
 
@@ -14,24 +14,36 @@ pub fn plugin(app: &mut bevy::app::App) {
         bevy::app::Update,
         spawn
             .run_if(not(any_with_component::<Frame>))
-            .run_if(on_event::<crate::level::LevelEvent>()),
+            .run_if(any_with_component::<crate::level::Level>),
     );
+    app.add_systems(
+        bevy::app::Update,
+        move_frame.run_if(any_with_component::<Frame>),
+    );
+}
+
+// for now moves at constant speed
+// todo: move along a path defined by the level
+fn move_frame(
+    mut query: bevy::ecs::system::Query<
+        &mut bevy::transform::components::Transform,
+        bevy::ecs::query::With<Frame>,
+    >,
+) {
+    let Ok(mut transform) = query.get_single_mut() else {
+        log::error!("More that one frame spawn at one time");
+        return;
+    };
+
+    transform.translation.x += 0.1;
 }
 
 fn spawn(
     mut commands: bevy::ecs::system::Commands,
-    mut reader: bevy::ecs::event::EventReader<crate::level::LevelEvent>,
+    query: bevy::ecs::system::Query<bevy::ecs::entity::Entity, bevy::ecs::query::With<crate::level::Level>>
 ) {
-    let Some(root) = reader.read().find_map(|e| {
-        match e {
-            crate::level::LevelEvent::RootSpawned(root) => {
-                Some(root)
-            },
-            _  => {
-                None
-            },
-        }
-    }) else {
+    let Ok(level) = query.get_single() else {
+        log::error!("Couldn't get a level instance");
         return;
     };
 
@@ -43,5 +55,5 @@ fn spawn(
             bevy::transform::TransformBundle::default(),
             crate::collider::Collider::new(WIDTH as f32, HEIGHT as f32),
         ))
-        .set_parent(*root);
+        .set_parent(level);
 }

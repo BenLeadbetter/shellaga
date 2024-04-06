@@ -1,10 +1,9 @@
 #[derive(bevy::ecs::component::Component)]
-struct Level;
+pub struct Level;
 
 #[derive(bevy::ecs::event::Event, std::cmp::PartialEq, std::cmp::Eq)]
 pub enum LevelEvent {
     LevelStart,
-    RootSpawned(bevy::ecs::entity::Entity),
 }
 
 pub fn plugin(app: &mut bevy::app::App) {
@@ -27,11 +26,7 @@ fn on_level_start_event(mut events: bevy::ecs::event::EventReader<LevelEvent>) -
 
 fn spawn(
     mut commands: bevy::ecs::system::Commands,
-    mut events: bevy::ecs::event::EventWriter<LevelEvent>,
 ) {
     log::info!("spawning level");
-    let id = commands
-        .spawn((bevy::transform::TransformBundle::default(), Level))
-        .id();
-    events.send(LevelEvent::RootSpawned(id));
+    commands.spawn((bevy::transform::TransformBundle::default(), Level));
 }

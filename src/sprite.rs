@@ -11,10 +11,23 @@ pub struct Sprite {
 
 fn render(
     mut buffer: bevy::ecs::system::ResMut<crate::buffer::Buffer>,
-    query: bevy::ecs::system::Query<(&Sprite, &bevy::transform::components::GlobalTransform)>,
+    query: bevy::ecs::system::Query<
+        (&Sprite, &bevy::transform::components::GlobalTransform),
+        bevy::ecs::query::Without<crate::frame::Frame>,
+    >,
+    frame_query: bevy::ecs::system::Query<
+        &bevy::transform::components::GlobalTransform,
+        bevy::ecs::query::With<crate::frame::Frame>,
+    >,
 ) {
+    let Ok(frame_transform) = frame_query.get_single() else {
+        log::error!("Could not get unique frame");
+        return;
+    };
+    let frame_transform = frame_transform.compute_matrix().inverse();
     for (sprite, global_transform) in &query {
-        render_to_buffer(sprite, &global_transform.compute_transform(), &mut *buffer);
+        let transform = bevy::transform::components::Transform::from_matrix(global_transform.compute_matrix() * frame_transform);
+        render_to_buffer(sprite, &transform, &mut *buffer);
     }
 }
 
