@@ -1,8 +1,8 @@
-pub const WIDTH: usize = 128;
-pub const HEIGHT: usize = 75;
+pub const WIDTH: usize = 32;
+pub const HEIGHT: usize = 20;
 
 #[derive(bevy::ecs::component::Component)]
-struct Frame;
+pub struct Frame;
 
 pub fn plugin(app: &mut bevy::app::App) {
     use bevy::ecs::schedule::{
@@ -41,10 +41,7 @@ fn spawn(
         .spawn((
             Frame,
             bevy::transform::TransformBundle::default(),
-            crate::collider::Collider {
-                size: bevy::math::f32::Vec2::new(WIDTH as f32, HEIGHT as f32),
-                ..Default::default()
-            }
+            crate::collider::Collider::new(WIDTH as f32, HEIGHT as f32),
         ))
         .set_parent(*root);
 }

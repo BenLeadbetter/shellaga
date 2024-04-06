@@ -22,7 +22,8 @@ fn direction(moving_state: u8) -> bevy::math::f32::Vec3 {
         component(MOVING_DOWN) - component(MOVING_UP),
         0.0,
     )
-    .try_normalize() {
+    .try_normalize()
+    {
         Some(v) => v,
         None => bevy::math::f32::Vec3::default(),
     }
@@ -92,17 +93,24 @@ fn spawn(
                     bevy::math::f32::Vec3::new(0.0, 6.0, 0.0),
                 ),
             ),
-            crate::collider::Collider {
-                size: bevy::math::f32::Vec2::new(3.0, 1.0),
-                ..Default::default()
-            },
+            crate::collider::Collider::new(3.0, 1.0),
         ))
         .set_parent(*root);
 }
 
 fn update(
     mut reader: bevy::ecs::event::EventReader<crate::terminal::TerminalEvent>,
-    mut query: bevy::ecs::system::Query<(&mut bevy::transform::components::Transform, &mut Player)>,
+    mut query: bevy::ecs::system::Query<(
+        &mut bevy::transform::components::Transform,
+        &mut Player,
+    ), bevy::ecs::query::Without<crate::frame::Frame>>,
+    mut frame_query: bevy::ecs::system::Query<
+        (
+            &crate::collider::Collider,
+            &bevy::transform::components::Transform,
+        ),
+        bevy::ecs::query::With<crate::frame::Frame>,
+    >,
 ) {
     let Ok((mut transform, mut player)) = query.get_single_mut() else {
         log::error!("More that one player spawn at one time");
@@ -157,4 +165,24 @@ fn update(
     }
 
     transform.translation += player.speed * direction(player.moving_state);
+
+    let Ok((frame_collider, frame_global_transform)) = frame_query.get_single_mut() else {
+        log::error!("More that one player spawn at one time");
+        return;
+    };
+
+    use bevy::math::Vec3Swizzles;
+    let frame_top_left = frame_global_transform
+        .transform_point(bevy::math::f32::Vec3::default())
+        .xy();
+    let frame_bottom_right = frame_global_transform
+        .transform_point(bevy::math::f32::Vec3::new(
+            frame_collider.x,
+            frame_collider.y,
+            0.0,
+        ))
+        .xy();
+
+    transform.translation.x = transform.translation.x.clamp(frame_top_left.x, frame_bottom_right.x);
+    transform.translation.y = transform.translation.y.clamp(frame_top_left.y, frame_bottom_right.y);
 }
