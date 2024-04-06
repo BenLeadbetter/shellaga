@@ -100,10 +100,10 @@ fn spawn(
 
 fn update(
     mut reader: bevy::ecs::event::EventReader<crate::terminal::TerminalEvent>,
-    mut query: bevy::ecs::system::Query<(
-        &mut bevy::transform::components::Transform,
-        &mut Player,
-    ), bevy::ecs::query::Without<crate::frame::Frame>>,
+    mut query: bevy::ecs::system::Query<
+        (&mut bevy::transform::components::Transform, &mut Player),
+        bevy::ecs::query::Without<crate::frame::Frame>,
+    >,
     mut frame_query: bevy::ecs::system::Query<
         (
             &crate::collider::Collider,
@@ -119,47 +119,27 @@ fn update(
 
     for event in reader.read() {
         let crate::terminal::TerminalEvent::Key(key) = event else {
-                continue;
-            };
+            continue;
+        };
+
         use crossterm::event::KeyCode::*;
         use crossterm::event::KeyEventKind::*;
+
+        let mut update_move_state = |state: u8| match &key.kind {
+            Press => {
+                player.moving_state |= state;
+            }
+            Release => {
+                player.moving_state &= !state;
+            }
+            _ => {}
+        };
+
         match &key.code {
-            Char('w') => match &key.kind {
-                Press => {
-                    player.moving_state |= MOVING_UP;
-                }
-                Release => {
-                    player.moving_state &= !MOVING_UP;
-                }
-                _ => {}
-            },
-            Char('a') => match &key.kind {
-                Press => {
-                    player.moving_state |= MOVING_LEFT;
-                }
-                Release => {
-                    player.moving_state &= !MOVING_LEFT;
-                }
-                _ => {}
-            },
-            Char('s') => match &key.kind {
-                Press => {
-                    player.moving_state |= MOVING_DOWN;
-                }
-                Release => {
-                    player.moving_state &= !MOVING_DOWN;
-                }
-                _ => {}
-            },
-            Char('d') => match &key.kind {
-                Press => {
-                    player.moving_state |= MOVING_RIGHT;
-                }
-                Release => {
-                    player.moving_state &= !MOVING_RIGHT;
-                }
-                _ => {}
-            },
+            Char('w') => update_move_state(MOVING_UP),
+            Char('a') => update_move_state(MOVING_LEFT),
+            Char('s') => update_move_state(MOVING_DOWN),
+            Char('d') => update_move_state(MOVING_RIGHT),
             _ => {}
         }
     }
@@ -183,6 +163,15 @@ fn update(
         ))
         .xy();
 
-    transform.translation.x = transform.translation.x.clamp(frame_top_left.x, frame_bottom_right.x);
-    transform.translation.y = transform.translation.y.clamp(frame_top_left.y, frame_bottom_right.y);
+    // note if the frame and the player have different parents
+    // (i.e. are not in the same coordinate system) then this clamping
+    // will need to be smarter, and account for the inverse transform.
+    transform.translation.x = transform
+        .translation
+        .x
+        .clamp(frame_top_left.x, frame_bottom_right.x);
+    transform.translation.y = transform
+        .translation
+        .y
+        .clamp(frame_top_left.y, frame_bottom_right.y);
 }
