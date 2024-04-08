@@ -81,11 +81,12 @@ fn fallible_render(terminal: &mut Terminal, buffer: &crate::buffer::Buffer) -> s
             crate::frame::WIDTH as u16,
             crate::frame::HEIGHT as u16,
         );
+        let border_length = 2;
         let main_layout_vertical = ratatui::layout::Layout::new(
             ratatui::layout::Direction::Vertical,
             [
                 ratatui::layout::Constraint::Fill(1),
-                ratatui::layout::Constraint::Min(frame_size.y),
+                ratatui::layout::Constraint::Length(frame_size.height + border_length),
                 ratatui::layout::Constraint::Fill(1),
             ],
         )
@@ -94,7 +95,7 @@ fn fallible_render(terminal: &mut Terminal, buffer: &crate::buffer::Buffer) -> s
             ratatui::layout::Direction::Horizontal,
             [
                 ratatui::layout::Constraint::Fill(1),
-                ratatui::layout::Constraint::Min(frame_size.x),
+                ratatui::layout::Constraint::Length(frame_size.width + border_length),
                 ratatui::layout::Constraint::Fill(1),
             ],
         )

@@ -96,7 +96,7 @@ fn spawn(
 fn update(
     mut reader: bevy::ecs::event::EventReader<crate::terminal::TerminalEvent>,
     mut query: bevy::ecs::system::Query<
-        (&mut bevy::transform::components::Transform, &mut Player),
+        (&mut bevy::transform::components::Transform, &mut Player, &crate::collider::Collider),
         bevy::ecs::query::Without<crate::frame::Frame>,
     >,
     frame_query: bevy::ecs::system::Query<
@@ -104,7 +104,7 @@ fn update(
         bevy::ecs::query::With<crate::frame::Frame>,
     >,
 ) {
-    let Ok((mut transform, mut player)) = query.get_single_mut() else {
+    let Ok((mut transform, mut player, collider)) = query.get_single_mut() else {
         log::error!("More that one player spawn at one time");
         return;
     };
@@ -146,9 +146,9 @@ fn update(
     transform.translation.x = transform
         .translation
         .x
-        .clamp(0.0, frame_collider.x);
+        .clamp(0.0, frame_collider.x - collider.x);
     transform.translation.y = transform
         .translation
         .y
-        .clamp(0.0, frame_collider.y);
+        .clamp(0.0, frame_collider.y - collider.y);
 }
