@@ -1,5 +1,5 @@
-pub const WIDTH: usize = 32;
-pub const HEIGHT: usize = 20;
+pub const WIDTH: usize = 128;
+pub const HEIGHT: usize = 32;
 
 #[derive(bevy::ecs::component::Component)]
 pub struct Frame;
