@@ -62,7 +62,7 @@ impl<'a> ratatui::widgets::Widget for LevelWidget<'a> {
             if col >= area.width.into() || row >= area.height.into() {
                 continue;
             }
-            buf.content[area.width as usize * row + col] = {
+            buf.content[buf.area.width as usize * (row + area.y as usize) + col + area.x as usize] = {
                 let mut rat_cell = ratatui::buffer::Cell::default();
                 if let Some(c) = cell.character {
                     rat_cell.set_char(c);
@@ -74,9 +74,38 @@ impl<'a> ratatui::widgets::Widget for LevelWidget<'a> {
 }
 
 fn fallible_render(terminal: &mut Terminal, buffer: &crate::buffer::Buffer) -> std::io::Result<()> {
-    terminal
-        .0
-        .draw(|frame| frame.render_widget(LevelWidget(&*buffer), frame.size()))?;
+    terminal.0.draw(|frame| {
+        let frame_size = ratatui::layout::Rect::new(
+            0,
+            0,
+            crate::frame::WIDTH as u16,
+            crate::frame::HEIGHT as u16,
+        );
+        let main_layout_vertical = ratatui::layout::Layout::new(
+            ratatui::layout::Direction::Vertical,
+            [
+                ratatui::layout::Constraint::Fill(1),
+                ratatui::layout::Constraint::Min(frame_size.y),
+                ratatui::layout::Constraint::Fill(1),
+            ],
+        )
+        .split(frame.size());
+        let main_layout = ratatui::layout::Layout::new(
+            ratatui::layout::Direction::Horizontal,
+            [
+                ratatui::layout::Constraint::Fill(1),
+                ratatui::layout::Constraint::Min(frame_size.x),
+                ratatui::layout::Constraint::Fill(1),
+            ],
+        )
+        .split(main_layout_vertical[1]);
+        let block = ratatui::widgets::Block::default()
+            .title("Shellaga")
+            .borders(ratatui::widgets::Borders::ALL);
+        let inner_size = block.inner(main_layout[1]);
+        frame.render_widget(block, main_layout[1]);
+        frame.render_widget(LevelWidget(&*buffer), inner_size);
+    })?;
     Ok(())
 }
 
@@ -111,5 +140,208 @@ fn handle_events(mut event_sender: bevy::ecs::event::EventWriter<TerminalEvent>)
             }
             _ => {}
         };
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn render_top_left() {
+        let buffer = crate::buffer::Buffer(ndarray::array![['x']].map(|c| crate::buffer::Cell {
+            character: Some(*c),
+            ..Default::default()
+        }));
+        let widget = LevelWidget(&buffer);
+        let mut terminal_buffer = ratatui::buffer::Buffer {
+            area: ratatui::layout::Rect {
+                x: 0,
+                y: 0,
+                width: 2,
+                height: 2,
+            },
+            content: vec![Default::default(); 4],
+        };
+
+        let mut expected = terminal_buffer.clone();
+        expected.content[0].set_char('x');
+
+        use ratatui::widgets::Widget;
+        widget.render(
+            ratatui::layout::Rect {
+                x: 0,
+                y: 0,
+                width: 1,
+                height: 1,
+            },
+            &mut terminal_buffer,
+        );
+
+        assert_eq!(terminal_buffer, expected);
+    }
+
+    #[test]
+    fn render_translated() {
+        let buffer = crate::buffer::Buffer(ndarray::array![['x']].map(|c| crate::buffer::Cell {
+            character: Some(*c),
+            ..Default::default()
+        }));
+        let widget = LevelWidget(&buffer);
+        let mut terminal_buffer = ratatui::buffer::Buffer {
+            area: ratatui::layout::Rect {
+                x: 0,
+                y: 0,
+                width: 2,
+                height: 2,
+            },
+            content: vec![Default::default(); 4],
+        };
+
+        let mut expected = terminal_buffer.clone();
+        expected.content[3].set_char('x');
+
+        use ratatui::widgets::Widget;
+        widget.render(
+            ratatui::layout::Rect {
+                x: 1,
+                y: 1,
+                width: 1,
+                height: 1,
+            },
+            &mut terminal_buffer,
+        );
+
+        assert_eq!(terminal_buffer, expected);
+    }
+
+    #[test]
+    fn render_2d_translated() {
+        let buffer = crate::buffer::Buffer(
+            ndarray::array![[Some('x'), Some('x')], [None, Some('x')]].map(|c| {
+                crate::buffer::Cell {
+                    character: *c,
+                    ..Default::default()
+                }
+            }),
+        );
+        let widget = LevelWidget(&buffer);
+        let mut terminal_buffer = ratatui::buffer::Buffer {
+            area: ratatui::layout::Rect {
+                x: 0,
+                y: 0,
+                width: 4,
+                height: 4,
+            },
+            content: vec![Default::default(); 16],
+        };
+
+        let target = ratatui::layout::Rect {
+            x: 1,
+            y: 1,
+            width: 2,
+            height: 2,
+        };
+
+        // 0 0 0 0
+        // 0 x x 0
+        // 0 0 x 0
+        // 0 0 0 0
+        let mut expected = terminal_buffer.clone();
+        expected.content[5].set_char('x');
+        expected.content[6].set_char('x');
+        expected.content[10].set_char('x');
+
+        use ratatui::widgets::Widget;
+        widget.render(target, &mut terminal_buffer);
+
+        assert_eq!(terminal_buffer, expected);
+    }
+
+    #[test]
+    fn render_2d_translated_x() {
+        let buffer = crate::buffer::Buffer(
+            ndarray::array![[Some('x'), Some('x')], [None, Some('x')]].map(|c| {
+                crate::buffer::Cell {
+                    character: *c,
+                    ..Default::default()
+                }
+            }),
+        );
+        let widget = LevelWidget(&buffer);
+        let mut terminal_buffer = ratatui::buffer::Buffer {
+            area: ratatui::layout::Rect {
+                x: 0,
+                y: 0,
+                width: 4,
+                height: 4,
+            },
+            content: vec![Default::default(); 16],
+        };
+
+        let target = ratatui::layout::Rect {
+            x: 2,
+            y: 0,
+            width: 2,
+            height: 2,
+        };
+
+        // 0 0 x x
+        // 0 0 0 x
+        // 0 0 0 0
+        // 0 0 0 0
+        let mut expected = terminal_buffer.clone();
+        expected.content[2].set_char('x');
+        expected.content[3].set_char('x');
+        expected.content[7].set_char('x');
+
+        use ratatui::widgets::Widget;
+        widget.render(target, &mut terminal_buffer);
+
+        assert_eq!(terminal_buffer, expected);
+    }
+
+    #[test]
+    fn render_2d_translated_y() {
+        let buffer = crate::buffer::Buffer(
+            ndarray::array![[Some('x'), Some('x')], [None, Some('x')]].map(|c| {
+                crate::buffer::Cell {
+                    character: *c,
+                    ..Default::default()
+                }
+            }),
+        );
+        let widget = LevelWidget(&buffer);
+        let mut terminal_buffer = ratatui::buffer::Buffer {
+            area: ratatui::layout::Rect {
+                x: 0,
+                y: 0,
+                width: 4,
+                height: 4,
+            },
+            content: vec![Default::default(); 16],
+        };
+
+        let target = ratatui::layout::Rect {
+            x: 0,
+            y: 2,
+            width: 2,
+            height: 2,
+        };
+
+        // 0 0 0 0
+        // 0 0 0 0
+        // x x 0 0
+        // 0 x 0 0
+        let mut expected = terminal_buffer.clone();
+        expected.content[8].set_char('x');
+        expected.content[9].set_char('x');
+        expected.content[13].set_char('x');
+
+        use ratatui::widgets::Widget;
+        widget.render(target, &mut terminal_buffer);
+
+        assert_eq!(terminal_buffer, expected);
     }
 }
