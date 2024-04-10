@@ -9,6 +9,7 @@ mod logging;
 mod player;
 mod sprite;
 mod terminal;
+mod weapon;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging::init()?;
@@ -23,6 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_plugins(level::plugin)
         .add_plugins(frame::plugin)
         .add_plugins(player::plugin)
+        .add_plugins(weapon::plugin)
         .add_systems(bevy::app::Startup, startup)
         .run();
 

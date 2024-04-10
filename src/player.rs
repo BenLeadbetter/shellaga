@@ -1,7 +1,7 @@
 #[derive(bevy::ecs::component::Component)]
 pub struct Player {
     speed: f32,
-    moving_state: u8,
+    state: u8,
 }
 
 const MOVING_LEFT: u8 = 0b0000_0001;
@@ -9,9 +9,9 @@ const MOVING_RIGHT: u8 = 0b0000_0010;
 const MOVING_UP: u8 = 0b0000_0100;
 const MOVING_DOWN: u8 = 0b0000_1000;
 
-fn direction(moving_state: u8) -> bevy::math::f32::Vec3 {
+fn direction(state: u8) -> bevy::math::f32::Vec3 {
     let component = |flag: u8| -> f32 {
-        if moving_state & flag > 0 {
+        if state & flag > 0 {
             1.0
         } else {
             0.0
@@ -65,7 +65,7 @@ fn spawn(
         .spawn((
             Player {
                 speed: 0.5,
-                moving_state: 0,
+                state: 0,
             },
             crate::sprite::Sprite {
                 buffer: crate::buffer::Buffer(ndarray::array![[
@@ -89,6 +89,7 @@ fn spawn(
                 ),
             ),
             crate::collider::Collider::new(3.0, 1.0),
+            crate::weapon::Weapon::new(0.3),
         ))
         .set_parent(frame);
 }
@@ -96,7 +97,12 @@ fn spawn(
 fn update(
     mut reader: bevy::ecs::event::EventReader<crate::terminal::TerminalEvent>,
     mut query: bevy::ecs::system::Query<
-        (&mut bevy::transform::components::Transform, &mut Player, &crate::collider::Collider),
+        (
+            &mut bevy::transform::components::Transform,
+            &mut Player,
+            &mut crate::weapon::Weapon,
+            &crate::collider::Collider,
+        ),
         bevy::ecs::query::Without<crate::frame::Frame>,
     >,
     frame_query: bevy::ecs::system::Query<
@@ -104,7 +110,7 @@ fn update(
         bevy::ecs::query::With<crate::frame::Frame>,
     >,
 ) {
-    let Ok((mut transform, mut player, collider)) = query.get_single_mut() else {
+    let Ok((mut transform, mut player, mut weapon, collider)) = query.get_single_mut() else {
         log::error!("More that one player spawn at one time");
         return;
     };
@@ -119,10 +125,10 @@ fn update(
 
         let mut update_move_state = |state: u8| match &key.kind {
             Press => {
-                player.moving_state |= state;
+                player.state |= state;
             }
             Release => {
-                player.moving_state &= !state;
+                player.state &= !state;
             }
             _ => {}
         };
@@ -132,11 +138,20 @@ fn update(
             Char('a') => update_move_state(MOVING_LEFT),
             Char('s') => update_move_state(MOVING_DOWN),
             Char('d') => update_move_state(MOVING_RIGHT),
+            Char(' ') => match &key.kind {
+                Press => {
+                    weapon.trigger(true);
+                }
+                Release => {
+                    weapon.trigger(false);
+                }
+                _ => {}
+            },
             _ => {}
         }
     }
 
-    transform.translation += player.speed * direction(player.moving_state);
+    transform.translation += player.speed * direction(player.state);
 
     let Ok(frame_collider) = frame_query.get_single() else {
         log::error!("More that one frame spawned at one time");
