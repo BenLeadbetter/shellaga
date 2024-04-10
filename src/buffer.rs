@@ -25,7 +25,7 @@ impl Default for Color {
     }
 }
 
-#[derive(Default, Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, Default, PartialEq, Debug)]
 pub struct Cell {
     pub fg: Color,
     pub bg: Color,
@@ -42,5 +42,8 @@ pub fn plugin(app: &mut bevy::app::App) {
 }
 
 pub fn clear_buffer(mut buffer: bevy::ecs::system::ResMut<Buffer>) {
-    buffer.0 = buffer.0.map(|_| Cell::default());
+    buffer.0 = buffer.0.map(|_| Cell {
+        depth: f32::MAX,
+        ..Default::default()
+    });
 }

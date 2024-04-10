@@ -80,13 +80,11 @@ fn reload_weapons_system(
     for (mut weapon, weapon_transform) in query.iter_mut() {
         weapon.reload_timer.tick(time.delta());
 
-        if !weapon.ready() {
-            continue;
+        if weapon.reload_timer.just_finished() {
+            log::trace!("Weapon ready");
         }
 
-        log::trace!("Weapon ready");
-
-        if !weapon.trigger {
+        if !weapon.ready() || !weapon.trigger {
             continue;
         }
 
@@ -176,6 +174,7 @@ fn shoot_lazer(
             crate::sprite::Sprite {
                 buffer: crate::buffer::Buffer(ndarray::array![[crate::buffer::Cell {
                     character: Some('-'),
+                    depth: 1.0, //  behind player
                     ..Default::default()
                 },]]),
             },
