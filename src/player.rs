@@ -133,20 +133,22 @@ fn update(
             _ => {}
         };
 
+        let mut update_weapon_state = || match &key.kind {
+            Press => {
+                weapon.trigger(true);
+            }
+            Release => {
+                weapon.trigger(false);
+            }
+            _ => {}
+        };
+
         match &key.code {
             Char('w') => update_move_state(MOVING_UP),
             Char('a') => update_move_state(MOVING_LEFT),
             Char('s') => update_move_state(MOVING_DOWN),
             Char('d') => update_move_state(MOVING_RIGHT),
-            Char(' ') => match &key.kind {
-                Press => {
-                    weapon.trigger(true);
-                }
-                Release => {
-                    weapon.trigger(false);
-                }
-                _ => {}
-            },
+            Char(' ') => update_weapon_state(),
             _ => {}
         }
     }
