@@ -5,7 +5,6 @@ pub fn plugin(app: &mut bevy::app::App) {
 #[derive(bevy::ecs::component::Component, Clone, Default)]
 pub struct Sprite {
     pub buffer: crate::buffer::Buffer,
-    // #[builder(default = "Default::default()")]
     // origin: bevy::math::i32::IVec2,
 }
 
@@ -26,7 +25,9 @@ fn render(
     };
     let frame_transform = frame_transform.compute_matrix().inverse();
     for (sprite, global_transform) in &query {
-        let transform = bevy::transform::components::Transform::from_matrix(global_transform.compute_matrix() * frame_transform);
+        let transform = bevy::transform::components::Transform::from_matrix(
+            global_transform.compute_matrix() * frame_transform,
+        );
         render_to_buffer(sprite, &transform, &mut *buffer);
     }
 }
@@ -64,7 +65,6 @@ fn render_to_buffer(
 mod tests {
     use crate::buffer::Cell;
     use pretty_assertions::assert_eq;
-
     use super::*;
 
     #[test]

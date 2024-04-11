@@ -1146,7 +1146,6 @@ name = "shellaga"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "bevy_ecs",
  "crossterm",
  "itertools",
  "log",

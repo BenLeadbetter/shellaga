@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 bevy = { version = "0.13.1", default-features = false }
-bevy_ecs = "0.13.1"
 crossterm = "0.27.0"
 itertools = "0.12.1"
 log = "0.4.21"

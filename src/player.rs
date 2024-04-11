@@ -53,11 +53,11 @@ pub fn plugin(app: &mut bevy::app::App) {
 fn spawn(
     mut commands: bevy::ecs::system::Commands,
     frame_query: bevy::ecs::system::Query<
-        bevy::ecs::entity::Entity,
+        (bevy::ecs::entity::Entity, &crate::collider::Collider),
         bevy::ecs::query::With<crate::frame::Frame>,
     >,
 ) {
-    let Ok(frame) = frame_query.get_single() else {
+    let Ok((frame, frame_collider)) = frame_query.get_single() else {
         log::error!("Couldn't get a frame instance");
         return;
     };
@@ -82,7 +82,7 @@ fn spawn(
         .spawn((
             Player,
             PlayerState {
-                speed: 0.5,
+                speed: 20.0,
                 state: 0,
             },
             crate::sprite::Sprite {
@@ -103,7 +103,7 @@ fn spawn(
             },
             bevy::transform::TransformBundle::from_transform(
                 bevy::transform::components::Transform::from_translation(
-                    bevy::math::f32::Vec3::new(0.0, 6.0, 0.0),
+                    bevy::math::f32::Vec3::new(0.0, frame_collider.y / 2.0, 0.0),
                 ),
             ),
             crate::collider::Collider::new(3.0, 1.0),
@@ -113,6 +113,7 @@ fn spawn(
 }
 
 fn update(
+    time: bevy::ecs::system::Res<bevy::time::Time>,
     mut reader: bevy::ecs::event::EventReader<crate::terminal::TerminalEvent>,
     mut weapon_query: bevy::ecs::system::Query<
         &mut crate::weapon::Weapon,
@@ -185,7 +186,8 @@ fn update(
         }
     }
 
-    transform.translation += player_state.speed * direction(player_state.state);
+    transform.translation +=
+        player_state.speed * direction(player_state.state) * time.delta_seconds();
 
     let Ok(frame_collider) = frame_query.get_single() else {
         log::error!("More that one frame spawned at one time");
