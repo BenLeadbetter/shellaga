@@ -190,7 +190,7 @@ fn update(
         player_state.speed * direction(player_state.state) * time.delta_seconds();
 
     let Ok(frame_collider) = frame_query.get_single() else {
-        log::error!("More that one frame spawned at one time");
+        log::error!("Couldn't get a unique frame instance");
         return;
     };
 
