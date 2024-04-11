@@ -3,6 +3,9 @@ pub struct Level {
     pub length: f32,
 }
 
+const BACKGROUND_DEPTH: f32 = 10.0;
+const BACKGROUND_DENSITY: f32 = 0.97;
+
 #[derive(bevy::ecs::event::Event, std::cmp::PartialEq, std::cmp::Eq)]
 pub enum LevelEvent {
     LevelStart,
@@ -39,10 +42,45 @@ fn on_level_end_event(mut events: bevy::ecs::event::EventReader<LevelEvent>) -> 
 
 fn spawn(mut commands: bevy::ecs::system::Commands) {
     log::info!("spawning level");
-    commands.spawn((
-        bevy::transform::TransformBundle::default(),
-        Level { length: 1000.0 },
-    ));
+    let length = 1000.0;
+    let level = commands
+        .spawn((
+            bevy::transform::TransformBundle::default(),
+            Level { length },
+        ))
+        .id();
+    spawn_background(&mut commands, level, length);
+}
+
+fn spawn_background(
+    commands: &mut bevy::ecs::system::Commands,
+    parent: bevy::ecs::entity::Entity,
+    length: f32,
+) {
+    use bevy::hierarchy::BuildChildren;
+    use itertools::Itertools;
+    for (row, col) in (0..length as usize).cartesian_product(0..crate::frame::HEIGHT) {
+
+        if rand::random::<f32>() < BACKGROUND_DENSITY {
+            continue;
+        }
+
+        commands
+            .spawn((
+                bevy::transform::TransformBundle::from_transform(
+                    bevy::transform::components::Transform::from_translation(
+                        bevy::math::f32::Vec3::new(row as f32, col as f32, BACKGROUND_DEPTH),
+                    ),
+                ),
+                crate::sprite::Sprite {
+                    buffer: crate::buffer::Buffer(ndarray::array![[crate::buffer::Cell {
+                        character: Some('*'),
+                        ..Default::default()
+                    }]]),
+                },
+            ))
+            .set_parent(parent);
+    }
 }
 
 fn despawn_with_children(

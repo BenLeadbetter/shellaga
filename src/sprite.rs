@@ -42,6 +42,10 @@ fn render_to_buffer(
         (0..sprite.buffer.0.shape()[0]).cartesian_product(0..sprite.buffer.0.shape()[1])
     {
         let translation = &transform.translation;
+        if translation.x < 0.0 || translation.y < 0.0 {
+            continue;
+        }
+
         let x = col + translation.x.round() as usize;
         let y = row + translation.y.round() as usize;
         let depth = translation.z;
@@ -63,9 +67,9 @@ fn render_to_buffer(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::buffer::Cell;
     use pretty_assertions::assert_eq;
-    use super::*;
 
     #[test]
     fn render_to_buffer_test() {
