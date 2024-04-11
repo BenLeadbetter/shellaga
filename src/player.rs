@@ -1,5 +1,8 @@
 #[derive(bevy::ecs::component::Component)]
-pub struct Player {
+struct Player;
+
+#[derive(bevy::ecs::component::Component)]
+pub struct PlayerState {
     speed: f32,
     state: u8,
 }
@@ -38,12 +41,12 @@ pub fn plugin(app: &mut bevy::app::App) {
     app.add_systems(
         bevy::app::Update,
         spawn
-            .run_if(not(any_with_component::<Player>))
+            .run_if(not(any_with_component::<PlayerState>))
             .run_if(any_with_component::<crate::frame::Frame>),
     );
     app.add_systems(
         bevy::app::Update,
-        update.run_if(any_with_component::<Player>),
+        update.run_if(any_with_component::<PlayerState>),
     );
 }
 
@@ -60,10 +63,25 @@ fn spawn(
     };
 
     log::info!("spawning player");
+
     use bevy::hierarchy::BuildChildren;
+
+    let weapon = commands
+        .spawn((
+            Player,
+            crate::weapon::Weapon::new(0.3),
+            bevy::transform::TransformBundle::from_transform(
+                bevy::transform::components::Transform::from_translation(
+                    bevy::math::f32::Vec3::new(3.0, 0.0, 0.0),
+                ),
+            ),
+        ))
+        .id();
+
     commands
         .spawn((
-            Player {
+            Player,
+            PlayerState {
                 speed: 0.5,
                 state: 0,
             },
@@ -89,29 +107,43 @@ fn spawn(
                 ),
             ),
             crate::collider::Collider::new(3.0, 1.0),
-            crate::weapon::Weapon::new(0.3),
         ))
+        .push_children(&[weapon])
         .set_parent(frame);
 }
 
 fn update(
     mut reader: bevy::ecs::event::EventReader<crate::terminal::TerminalEvent>,
+    mut weapon_query: bevy::ecs::system::Query<
+        &mut crate::weapon::Weapon,
+        (
+            bevy::ecs::query::Without<crate::frame::Frame>,
+            bevy::ecs::query::With<Player>,
+        ),
+    >,
     mut query: bevy::ecs::system::Query<
         (
             &mut bevy::transform::components::Transform,
-            &mut Player,
-            &mut crate::weapon::Weapon,
+            &mut PlayerState,
             &crate::collider::Collider,
         ),
-        bevy::ecs::query::Without<crate::frame::Frame>,
+        (
+            bevy::ecs::query::Without<crate::frame::Frame>,
+            bevy::ecs::query::With<Player>,
+        ),
     >,
     frame_query: bevy::ecs::system::Query<
         &crate::collider::Collider,
         bevy::ecs::query::With<crate::frame::Frame>,
     >,
 ) {
-    let Ok((mut transform, mut player, mut weapon, collider)) = query.get_single_mut() else {
-        log::error!("More that one player spawn at one time");
+    let Ok((mut transform, mut player_state, collider)) = query.get_single_mut() else {
+        log::error!("Couldn't get a unique player instance.");
+        return;
+    };
+
+    let Ok(mut weapon) = weapon_query.get_single_mut()  else {
+        log::error!("Couldn't get a unique weapon instance.");
         return;
     };
 
@@ -125,10 +157,10 @@ fn update(
 
         let mut update_move_state = |state: u8| match &key.kind {
             Press => {
-                player.state |= state;
+                player_state.state |= state;
             }
             Release => {
-                player.state &= !state;
+                player_state.state &= !state;
             }
             _ => {}
         };
@@ -153,7 +185,7 @@ fn update(
         }
     }
 
-    transform.translation += player.speed * direction(player.state);
+    transform.translation += player_state.speed * direction(player_state.state);
 
     let Ok(frame_collider) = frame_query.get_single() else {
         log::error!("More that one frame spawned at one time");
