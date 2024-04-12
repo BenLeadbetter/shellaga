@@ -1,5 +1,5 @@
 #[derive(bevy::ecs::component::Component)]
-struct Player;
+pub struct Player;
 
 #[derive(bevy::ecs::component::Component)]
 pub struct PlayerState {

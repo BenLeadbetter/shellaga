@@ -5,6 +5,7 @@ pub struct Level {
 
 const BACKGROUND_DEPTH: f32 = 10.0;
 const BACKGROUND_DENSITY: f32 = 0.97;
+const ENEMY_DENSITY: f32 = 0.95;
 
 #[derive(bevy::ecs::event::Event, std::cmp::PartialEq, std::cmp::Eq)]
 pub enum LevelEvent {
@@ -50,6 +51,7 @@ fn spawn(mut commands: bevy::ecs::system::Commands) {
         ))
         .id();
     spawn_background(&mut commands, level, length);
+    spawn_enemies(&mut commands, level, length);
 }
 
 fn spawn_background(
@@ -60,7 +62,6 @@ fn spawn_background(
     use bevy::hierarchy::BuildChildren;
     use itertools::Itertools;
     for (row, col) in (0..length as usize).cartesian_product(0..crate::frame::HEIGHT) {
-
         if rand::random::<f32>() < BACKGROUND_DENSITY {
             continue;
         }
@@ -78,6 +79,27 @@ fn spawn_background(
                         ..Default::default()
                     }]]),
                 },
+            ))
+            .set_parent(parent);
+    }
+}
+
+fn spawn_enemies(
+    commands: &mut bevy::ecs::system::Commands,
+    parent: bevy::ecs::entity::Entity,
+    length: f32,
+) {
+    use bevy::hierarchy::BuildChildren;
+    for i in crate::frame::WIDTH..length as usize {
+        if rand::random::<f32>() < ENEMY_DENSITY {
+            continue;
+        }
+        commands
+            .spawn(crate::enemy::Enemy::bundle())
+            .insert(bevy::transform::TransformBundle::from_transform(
+                bevy::transform::components::Transform::from_translation(bevy::math::f32::Vec3::new(
+                    i as f32, rand::random::<f32>() * (crate::frame::HEIGHT as f32), 0.0,
+                )),
             ))
             .set_parent(parent);
     }

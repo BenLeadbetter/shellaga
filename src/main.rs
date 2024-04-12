@@ -3,6 +3,7 @@ use bevy::app::PluginGroup;
 mod app;
 mod buffer;
 mod collider;
+mod enemy;
 mod frame;
 mod level;
 mod logging;
@@ -25,6 +26,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_plugins(frame::plugin)
         .add_plugins(player::plugin)
         .add_plugins(weapon::plugin)
+        .add_plugins(enemy::plugin)
         .add_systems(bevy::app::Startup, startup)
         .run();
 
