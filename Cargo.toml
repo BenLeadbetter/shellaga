@@ -2,6 +2,11 @@
 name = "shellaga"
 version = "0.1.0"
 edition = "2021"
+authors = [
+    "Ben Leadbetter <ben.leadbetter@hotmail.com>",
+]
+description = "A Galaga-like game which runs in the Terminal."
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
