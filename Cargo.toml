@@ -17,6 +17,8 @@ itertools = "0.12.1"
 log = "0.4.21"
 ndarray = "0.15.6"
 oslog = "0.2.0"
-pretty_assertions = "1.4.0"
 rand = "0.8.5"
 ratatui = "0.26.1"
+
+[dev-dependencies]
+pretty_assertions = "1.4.0"
