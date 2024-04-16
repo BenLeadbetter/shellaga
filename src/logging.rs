@@ -6,6 +6,13 @@ pub fn init() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[cfg(target_os = "windows")]
+pub fn init() -> Result<(), Box<dyn std::error::Error>> {
+    eventlog::init("shellaga", level())?;
+    Ok(())
+}
+
+
 #[cfg(target_os = "linux")]
 pub fn init() -> Result<(), Box<dyn std::error::Error>> {
     let formatter = syslog::Formatter3164 {
