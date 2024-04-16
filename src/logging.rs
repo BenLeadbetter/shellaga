@@ -18,7 +18,7 @@ pub fn init() -> Result<(), Box<dyn std::error::Error>> {
     let formatter = syslog::Formatter3164 {
         facility: syslog::Facility::LOG_USER,
         hostname: None,
-        process: "myprogram".into(),
+        process: "shellaga".into(),
         pid: 0,
     };
 
