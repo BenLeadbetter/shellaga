@@ -17,7 +17,6 @@ cargo run
 
 Currently shellaga requires a Terminal which supports [Kitty terminal protocol extensions](https://sw.kovidgoyal.net/kitty/protocol-extensions/).
 
-
 ## ✏️  Design ✏️
 
 We use the [Bevy game engine](https://bevyengine.org/) and it's Entity Component System to handle game logic, run loop, time, etc.
@@ -28,6 +27,5 @@ We use [Ratatui](https://ratatui.rs/) to handle drawing ui.
 
 ## 🌟 Contribution 🌟
 
-Contributions are actively encoraged!
+Contributions are actively encouraged!
 Please check out the Issues for ideas.
-
