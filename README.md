@@ -3,7 +3,7 @@
 
 A Galaga-like game which runs in the Terminal.
 
-![Screenshot](./screenshot.png)
+[![asciicast](https://asciinema.org/a/6P6JVwuzM31VIFPokKTclptuE.svg)](https://asciinema.org/a/6P6JVwuzM31VIFPokKTclptuE)
 
 ## ⚡ Quick Start ⚡
 
