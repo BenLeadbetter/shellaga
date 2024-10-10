@@ -1,0 +1,33 @@
+repos:
+- repo: https://github.com/doublify/pre-commit-rust
+  rev: v1.0
+  hooks:
+  - id: fmt
+    stages: [pre-commit]
+- repo: https://github.com/compilerla/conventional-pre-commit
+  rev: v3.2.0
+  hooks:
+  - id: conventional-pre-commit
+    stages: [commit-msg]
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.4.0
+  hooks:
+  - id: check-added-large-files
+    stages: [pre-commit]
+  - id: check-case-conflict
+    stages: [pre-commit]
+  - id: check-merge-conflict
+    stages: [pre-commit]
+  - id: check-toml
+    stages: [pre-commit]
+  - id: check-yaml
+    stages: [pre-commit]
+  - id: detect-private-key
+    stages: [pre-commit]
+  - id: mixed-line-ending
+    stages: [pre-commit]
+- repo: https://github.com/codespell-project/codespell
+  rev: v2.2.4
+  hooks:
+  - id: codespell
+    args: [-I, codespell-ignore]

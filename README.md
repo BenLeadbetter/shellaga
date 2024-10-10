@@ -3,6 +3,8 @@
 
 A Galaga-like game which runs in the Terminal.
 
+[![asciicast](https://asciinema.org/a/6P6JVwuzM31VIFPokKTclptuE.svg)](https://asciinema.org/a/6P6JVwuzM31VIFPokKTclptuE)
+
 ## ⚡ Quick Start ⚡
 
 Simply checkout the code and run the target via cargo. 🦀
