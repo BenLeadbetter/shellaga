@@ -3,6 +3,8 @@
 
 A Galaga-like game which runs in the Terminal.
 
+![Screenshot](./screenshot.png)
+
 ## ⚡ Quick Start ⚡
 
 Simply checkout the code and run the target via cargo. 🦀
